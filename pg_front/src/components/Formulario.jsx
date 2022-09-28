@@ -22,6 +22,8 @@ import { TextsmsOutlined } from "@mui/icons-material";
 import { useAuth0 } from "@auth0/auth0-react";
 
 export default function FormPropsTextFields({ props }) {
+  import { useAuth0 } from "@auth0/auth0-react";
+  const { user as Auth0 } = useAuth0();
   const [checked, setChecked] = React.useState(true);
   const userAuth0 = useAuth0().user;
   let history = useHistory();
@@ -327,6 +329,30 @@ export default function FormPropsTextFields({ props }) {
           </Box>
 
           {totalPrice > 0 ? (
+            <Typography variant="h4" color="primary" textAlign="center">
+              Total: ${totalPrice}.00
+            </Typography>
+          ) : (
+            <Typography variant="h5" color="primary" textAlign="center">
+              No Items Selected
+            </Typography>
+          )}
+          {errors.name ||
+          errors.apellido ||
+          errors.calle ||
+          errors.numero ||
+          errors.provincia ||
+          errors.localidad ||
+          errors.telefono ||
+          errors.email ? (
+            <h3 className={f.colour}>MANDATORY FIELDS MISSING</h3>
+          ) : Object.keys(user).length > 0 || Object.keys(Auth0).length > 0 ? (
+            <Button
+              variant="contained"
+              color="primary"
+              className="btn-form"
+              onClick={(e) => handleButton(e)}
+              disableElevation
             <Box
               sx={{
                 border: "1px solid #000",
