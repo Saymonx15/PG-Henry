@@ -17,32 +17,36 @@ import Typography from "@mui/material/Typography";
 import CardContent from "@mui/material/CardContent";
 import { createOrder } from "../redux/action";
 
+import { TextsmsOutlined } from "@mui/icons-material";
+
+import { useAuth0 } from "@auth0/auth0-react";
+
 export default function FormPropsTextFields({ props }) {
+  import { useAuth0 } from "@auth0/auth0-react";
+  const { user as Auth0 } = useAuth0();
   const [checked, setChecked] = React.useState(true);
+  const userAuth0 = useAuth0().user;
+  let history = useHistory();
+
   // const [leyenda, setLeyenda] = React.useState("");
   // const [errorTexto, setErrorTexto] = React.useState(false);
   const [errors, setErrors] = React.useState({});
   const [totalPrice, setTotalPrice] = React.useState(0);
+  const user = useSelector((state) => state.user);
   let items = useSelector((state) => state.cartItems);
   console.log(items);
   const user1 = useSelector((state) => state.user);
   const url = useSelector((state) => state.url);
   const dispatch = useDispatch();
+  console.log(user1);
 
   const handleChange = (event) => {
     setChecked(event.target.checked);
   };
 
   const [texto, setTexto] = React.useState({
-    name: "",
-    apellido: "",
-    calle: "",
-    numero: "",
-    provincia: "",
-    localidad: "",
-    telefono: "",
+    celNumber: "",
     email: "",
-    cp: "",
   });
 
   let totalItems = 0;
@@ -51,65 +55,21 @@ export default function FormPropsTextFields({ props }) {
     // totalPrice += items[i].price;
   }
   const productsId = items.map((p) => p.id);
+  console.log(productsId);
 
   const [order, setOrder] = React.useState({
     productId: productsId,
+    idProduct: idProduct,
     quantity: totalItems,
     orderStatus: "created",
-    totalPrice: totalPrice,
     email: user1.email,
     userId: user1.id,
   });
 
-  console.log(order);
+  // console.log(order);
 
   const handleButton = async (event) => {
-    if (texto.name.length < 3 || texto.name.length > 10) {
-      return Swal.fire({
-        title: "Check the name!",
-        text: "It must contain from 3 to 10 characters.",
-        icon: "error",
-      });
-    }
-    if (texto.apellido.length < 3) {
-      return Swal.fire({
-        title: "Check the lastname!",
-        text: "The last name is required.",
-        icon: "error",
-      });
-    }
-    if (texto.calle.length < 3) {
-      return Swal.fire({
-        title: "Check the address!",
-        text: "An address is required.",
-        icon: "error",
-      });
-    }
-    if (!texto.numero) {
-      return Swal.fire({
-        title: "Check the number!",
-        text: "Number is required.",
-        icon: "error",
-      });
-    }
-    if (!texto.cp) {
-      return Swal.fire({
-        title: "Check the CP!",
-        text: "Enter your zip code.",
-        icon: "error",
-      });
-    }
-    if (texto.provincia.length < 3) {
-      return Swal.fire({
-        title: "Check your province or state!",
-        text: "Enter your province or state.",
-        icon: "error",
-      });
-    }
-    if (texto.localidad.length < 3) {
-      return Swal.fire({ title: "Check your city!", icon: "error" });
-    }
-    if (!texto.telefono || texto.telefono.length < 5) {
+    if (!texto.celNumber || texto.celNumber.length < 5) {
       return Swal.fire({
         title: "Check your cell phone!",
         text: "It must contain at least 5 characters.",
@@ -123,9 +83,12 @@ export default function FormPropsTextFields({ props }) {
         icon: "error",
       });
     }
-    dispatch(createOrder(order));
+    if (typeof totalPrice !== "number") order.totalPrice = totalPrice[0];
+
+    else order.totalPrice = totalPrice;
+    dispatch(createOrder(order, texto));
     setTimeout(function () {
-      console.log("Envié la or");
+      localStorage.removeItem(`items`);
       window.location.replace(url);
     }, 1000);
   };
@@ -151,9 +114,10 @@ export default function FormPropsTextFields({ props }) {
       let priceEach = items.map((i) => [...prices, Number(i.qty) * i.price]);
       let total = priceEach.reduce((a, b) => Number(a) + Number(b));
       setTotalPrice(total);
-      // console.log(totalPrice);
-    } else setTotalPrice(0);
-  }, [items]);
+    } else {
+      setTotalPrice(0);
+    }
+  }, []);
 
   return (
     <div className={f.form}>
@@ -181,7 +145,7 @@ export default function FormPropsTextFields({ props }) {
           autoComplete="off"
         >
           <center className={f.form}>
-            <h2>PURCHASE INFORMATION</h2>
+            <h2>CONTACT INFORMATION</h2>
           </center>
           <div
             style={{
@@ -189,104 +153,24 @@ export default function FormPropsTextFields({ props }) {
               gridTemplateColumns: "20% 20%",
               // justifyContent: "space-evenly",
               gridGap: "1rem 10rem",
-              marginLeft: "3rem",
+              marginLeft: "8rem",
             }}
           >
-            <div>
-              <TextField
-                onChange={(e) => {
-                  stateInput(e);
-                }}
-                label="Name"
-                helperText={"Máximo de caracteres 10."}
-                name="name"
-                type={"text"}
-                value={texto.name}
-              />
-            </div>
-
             <TextField
               onChange={(e) => {
                 stateInput(e);
               }}
               required
+              id="outlined-required"
+              label="Phone Number"
               helperText={
-                errors.apellido && <p className={f.colour}>{errors.apellido}</p>
-              }
-              type="text"
-              id="outlined-required"
-              label="Last Name"
-              name="apellido"
-              value={texto.apellido}
-              //   defaultValue="Hello World"
-            />
-            <TextField
-              onChange={(e) => {
-                stateInput(e);
-              }}
-              required
-              helperText={
-                errors.calle && <p className={f.colour}>{errors.calle}</p>
-              }
-              id="outlined-required"
-              label="Street"
-              name="calle"
-              value={texto.calle}
-              //   defaultValue="Hello World"
-            />
-            <TextField
-              onChange={(e) => {
-                stateInput(e);
-              }}
-              required
-              id="outlined-required"
-              label="Number"
-              helperText={
-                errors.numero && <p className={f.colour}>{errors.numero}</p>
-              }
-              name="numero"
-              value={texto.numero}
-              //   defaultValue="Hello World"
-            />
-            <TextField
-              id="outlined-required"
-              label="Floor"
-              //   defaultValue="Hello World"
-            />
-            <TextField
-              id="outlined-required"
-              label="Apartment n°"
-              type="number"
-              //   defaultValue="Hello World"
-            />
-            <TextField
-              onChange={(e) => {
-                stateInput(e);
-              }}
-              required
-              id="outlined-required"
-              label="Postal Code"
-              type="number"
-              helperText={errors.cp && <p className={f.colour}>{errors.cp}</p>}
-              name="cp"
-              value={texto.cp}
-              //   defaultValue="Hello World"
-            />
-            <TextField
-              onChange={(e) => {
-                stateInput(e);
-              }}
-              required
-              id="outlined-required"
-              label="Province"
-              helperText={
-                errors.provincia && (
-                  <p className={f.colour}>{errors.provincia}</p>
+                errors.celNumber && (
+                  <p className={f.colour}>{errors.celNumber}</p>
                 )
               }
-              name="provincia"
-              value={texto.provincia}
-              //   defaultValue="Hello World"
+              name="celNumber"
+              value={texto.celNumber}
+              //      defaultValue="Hello World"
             />
             <TextField
               onChange={(e) => {
@@ -294,84 +178,85 @@ export default function FormPropsTextFields({ props }) {
               }}
               required
               id="outlined-required"
-              label="City"
+              label="Email"
               helperText={
-                errors.localidad && (
-                  <p className={f.colour}>{errors.localidad}</p>
-                )
+                errors.email && <p className={f.colour}>{errors.email}</p>
               }
-              name="localidad"
-              value={texto.localidad}
-              //   defaultValue="Hello World"
+              name="email"
+              value={texto.email}
+              //      defaultValue="Hello World"
             />
           </div>
-          <div>
-            <center>
-              <h2>CONTACT INFORMATION</h2>
-            </center>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "20% 20%",
-                // justifyContent: "space-evenly",
-                gridGap: "1rem 10rem",
-                marginLeft: "3rem",
+          <div style={{
+            display:"flex",
+            flexDirection:"column",
+            alignItems:"center",
+            justifyContent:"center"
+          }}>
+
+          {errors.celNumber || errors.email ? (
+            <h3 className={f.colour}>MANDATORY FIELDS MISSING</h3>
+          ) : Object.keys(user).length > 0 ? (
+            <Button
+              variant="contained"
+              color="primary"
+              className="btn-form"
+              onClick={(e) => handleButton(e)}
+              disableElevation
+              sx={{
+                width:"400px",
+                height:"70px",
+                margin:"40px"
               }}
             >
-              <TextField
-                onChange={(e) => {
-                  stateInput(e);
-                }}
-                required
-                id="outlined-required"
-                label="Phone Number"
-                helperText={
-                  errors.telefono && (
-                    <p className={f.colour}>{errors.telefono}</p>
-                  )
+              BUY
+            </Button>
+          ) : (
+            <Link to="/login">
+              <Button
+                variant="contained"
+                color="primary"
+                className="btn-form"
+                onClick={(e) =>
+                  Swal.fire({
+                    title: "You are not logged in",
+                    text: "Please log in or register to complete your purchase",
+                  })
                 }
-                name="telefono"
-                value={texto.telefono}
-                //      defaultValue="Hello World"
-              />
-              <TextField
-                onChange={(e) => {
-                  stateInput(e);
+                disableElevation
+                sx={{
+                  width:"400px",
+                  height:"70px",
+                  margin:"40px"
                 }}
-                required
-                id="outlined-required"
-                label="Email"
-                helperText={
-                  errors.email && <p className={f.colour}>{errors.email}</p>
-                }
-                name="email"
-                value={texto.email}
-                //      defaultValue="Hello World"
-              />
-            </div>
-            {/* <TextField
+              >
+                BUY
+              </Button>
+
+                  </Link>
+                )}
+           
+
+          {/* <TextField
               id="outlined-required"
               label="ID"
               //      defaultValue="Hello World"
             /> */}
-            <div className="btn-form">
-              <Link to="/">
-                <Button
-                  // href="/"
-                  variant="contained"
-                  className="btn-form"
-                  color="primary"
-                  sx={{
-                    margin: "2rem 0 0 4rem",
-                    // borderRadius: "50%",
-                    height: "3rem",
-                  }}
-                >
-                  HOME
-                </Button>
-              </Link>
+
+            <Link to="/">
+              <Button
+                // href="/"
+                variant="contained"
+                color="primary"
+                sx={{
+                  width:"200px"
+                }}
+              >
+                CANCEL
+              </Button>
+            </Link>
             </div>
-          </div>
+
 
           <Checkbox
             defaultChecked
@@ -397,6 +282,7 @@ export default function FormPropsTextFields({ props }) {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
+              maxHeight: "100%",
             }}
           >
             {items.map((i) => {
@@ -404,9 +290,11 @@ export default function FormPropsTextFields({ props }) {
                 <Box sx={{ marginBottom: "2rem" }}>
                   <Card
                     sx={{
-                      maxHeight: "10rem",
+                      maxHeight: "11rem",
                       display: "flex",
                       flexDirection: "row-reverse",
+                      maxWidth: "35rem",
+                      zIndex: "-1",
                     }}
                     onClick={() => history.push(`/detail/${i.id}`)}
                     className={f.cardMedia}
@@ -414,14 +302,14 @@ export default function FormPropsTextFields({ props }) {
                     <CardMedia
                       component="img"
                       width="1rem"
-                      height="150"
+                      height="180"
                       image={i.image}
                       alt={i.title[0].toUpperCase() + i.title.substring(1)}
                       sx={{ position: "relative" }}
                     />
 
                     <CardContent sx={{ width: "30rem" }}>
-                      <Typography gutterBottom variant="h5" component="div">
+                      <Typography gutterBottom variant="h6" component="div">
                         {i.title}
                       </Typography>
                       <Typography>${i.price * i.qty}.00</Typography>
@@ -429,7 +317,7 @@ export default function FormPropsTextFields({ props }) {
                         flexGrow={1}
                         variant="body2"
                         color="text.secondary"
-                        sx={{ marginTop: "1.5rem" }}
+                        sx={{ marginTop: "0.5rem" }}
                       >
                         Number of items: {i.qty}
                       </Typography>
@@ -458,24 +346,37 @@ export default function FormPropsTextFields({ props }) {
           errors.telefono ||
           errors.email ? (
             <h3 className={f.colour}>MANDATORY FIELDS MISSING</h3>
-          ) : totalPrice > 0 ? (
+          ) : Object.keys(user).length > 0 || Object.keys(Auth0).length > 0 ? (
             <Button
               variant="contained"
               color="primary"
               className="btn-form"
               onClick={(e) => handleButton(e)}
               disableElevation
+            <Box
               sx={{
-                width: "40rem",
-                height: "3rem",
-                // marginRigth: "12px",
-                marginTop: "2rem",
+                border: "1px solid #000",
+                padding: "1rem",
+                borderRadius: "3px",
+                margin: "1rem 0 5rem 0",
               }}
             >
-              BUY
-            </Button>
+              <Typography variant="h4" color="primary" textAlign="center">
+                Total: ${totalPrice}.00
+              </Typography>
+            </Box>
           ) : (
-            <p></p>
+            <Box
+              sx={{
+                border: "1px solid #000",
+                padding: "1rem",
+                margin: "1rem 0 2rem 0",
+              }}
+            >
+              <Typography variant="h5" color="primary" textAlign="center">
+                No Items Selected
+              </Typography>
+            </Box>
           )}
         </Box>
       </Box>

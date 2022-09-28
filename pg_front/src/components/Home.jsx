@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { getProduct } from "../redux/action";
-import Skeleton from '@mui/material/Skeleton';
+import { getProduct,getOrderByUser, getAllOrders, getAllUsers } from "../redux/action";
+import Skeleton from "@mui/material/Skeleton";
 import Nav from "./Nav";
 import home from "../asset/home.png";
 import Section from "./Section";
@@ -9,14 +9,19 @@ import HomePictures from "./HomePictures";
 import CarouselBrands from "./CarouselBrands";
 import $ from "jquery";
 import style from "./Home.module.css";
-import Contact from "./Contact"
+import Contact from "./Contact";
 import { Link, useHistory } from "react-router-dom";
+import HistoryOrder from "./HistoryOrder";
+
+
+
+
 window.jquery = window.$ = $;
-
-
 
 export default function Home() {
   const allProducts = useSelector((state) => state.products);
+  const user = useSelector((state) => state.user)
+  const id = user.id
   const dispatch = useDispatch();
   const history = useHistory();
   const pageSize = 12;
@@ -41,6 +46,7 @@ export default function Home() {
 
   useEffect(() => {
     dispatch(getProduct());
+    dispatch(getAllUsers())
   }, [dispatch]);
 
   useEffect(() => {
@@ -52,6 +58,8 @@ export default function Home() {
       currentPage: 1,
     });
   }, [allProducts.length]);
+
+
 
   return (
     home && allProducts ? (
@@ -115,3 +123,4 @@ export default function Home() {
       </div>) : (<Skeleton variant="rectangular" width={1300} height={1200} />)
   );
 }
+

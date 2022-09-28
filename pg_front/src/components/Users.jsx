@@ -17,25 +17,26 @@ import {
 } from '@mui/material';
 import { Delete, Password, AccountCircle } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
-import { getAllUsers, changeRoleUser,deleteUser,getOrderById, passwordRemember } from '../redux/action'
+import { getAllUsers, changeRoleUser,deleteUser,getOrderByUser, passwordRemember, cleanDetail, getAllOrders } from '../redux/action'
 import { data, role } from './data';
 
 const Users = ({setView}) => {
   //const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [edit, setEdit] = useState(false);
+  const [edit, setEdit] = useState(true);
   const [rowSelection, setRowSelection] = useState({});
   const dispatch = useDispatch();
   const users = useSelector(state => state.users);
 
   useEffect(() => {
-    if (users.length === 0 || edit) {
+    if (edit) {
       dispatch(getAllUsers());
+      // console.log(edit)
     }
     setEdit(() => false)
-  }, [edit])
+  }, [dispatch])
 
   const handleDelete = (row) => {
-    const { id } = row.original;
+    const { id,name } = row.original;
     Swal.fire({
       title: `Do you want delete ${row.original.name}?`,
       text: "You won't be able to revert this!",
@@ -46,13 +47,8 @@ const Users = ({setView}) => {
       confirmButtonText: 'Yes, delete user!'
     }).then((result) => {
       if (result.isConfirmed) {
-        dispatch(deleteUser(id))
-        setEdit(() => true);
-        Swal.fire(
-          'User deleted!',
-          `${row.original.name} was deleted`,
-          'success'
-        )
+        dispatch(deleteUser(id,name))
+        setEdit(() => true);        
       }
     })
   }
@@ -71,12 +67,7 @@ const Users = ({setView}) => {
     }).then((result) => {
       if (result.isConfirmed) {        
         dispatch(passwordRemember({email:email}))
-        setEdit(() => true);
-        Swal.fire(
-          'User password reset!',
-          `${row.original.name} was asked to change password`,
-          'success'
-        )
+        setEdit(() => true);        
       }
     })    
   }
@@ -105,8 +96,19 @@ const Users = ({setView}) => {
               gap: '1rem',
             }}
           >
-            {row.original.image !== null
+            {row.original.image === '' || row.original.image==='ss'
               ?
+              <AccountCircle
+              sx={{
+                color: 'gray',
+                fontSize: "large",
+                marginBottom: "0.5rem",
+                width: "30px",
+                height: "30px",
+                marginRight: "1rem",
+              }}
+            />
+            :
               <img
                 alt="avatar"
                 height={30}
@@ -114,9 +116,7 @@ const Users = ({setView}) => {
                 loading="lazy"
                 style={{ borderRadius: '50%' }}
               />
-              :
-              <AccountCircle />
-            }
+              }
             <Typography>{cell.getValue()}</Typography>
           </Box>
         ),
@@ -166,12 +166,12 @@ const Users = ({setView}) => {
       data={users}
       initialState={{ columnVisibility: { id: false } }}
       positionRowActions="right"
-      /* muiTableHeadCellProps={{
+      muiTableHeadCellProps={{
         sx: {
-          backgroundColor: 'black',
+          backgroundColor: '#FF0000',
           color: 'white',
         },
-      }} */
+      }}
       /*    muiTableBodyCellProps={{
            sx:{
              backgroundColor:'#9c9c9c'
@@ -215,23 +215,28 @@ const Users = ({setView}) => {
             }).then((result) => {
               if (result.isConfirmed) {
                 dispatch(changeRoleUser(id, body))
-                setEdit(() => true);
-                Swal.fire(
-                  'Role changed!',
-                  `${row.original.name} now is ${row.original.rol}`,
-                  'success'
-                )
+                setEdit(() => true);                
               }
             })
           });
         };
 
-        const handleOrder = () => {
-          table.getSelectedRowModel().flatRows.map((row) => {
-            const { id } = row.original;
-            dispatch(getOrderById(id));
+        // const handleOrder = () => {
+        //   table.getSelectedRowModel().flatRows.map((row) => {
+        //     const { id } = row.original;
+        //     // console.log(id)
+        //     dispatch(getOrderByUser(id));
+        //     setView('orders')
+        //     dispatch(cleanDetail())
+        //   });
+        // };
+
+        const handleAllOrders = () => {
+          
+            dispatch(getAllOrders());
             setView('orders')
-          });
+            dispatch(cleanDetail())
+          ;
         };
 
         return (
@@ -244,14 +249,22 @@ const Users = ({setView}) => {
             >
               CHANGE ROLE
               </Button>
-            <Button
+            {/* <Button
               color="info"
               disabled={table.getSelectedRowModel().flatRows.length === 0}
               onClick={handleOrder}
               variant="contained"
             >
-              USER'S ORDERS
-              </Button>
+              USER ORDERS
+              </Button> */}
+              <Button
+              color="info"
+              
+              onClick={handleAllOrders}
+              variant="contained"
+            >
+              ALL ORDERS
+            </Button>
           </Box>
         );
       }}

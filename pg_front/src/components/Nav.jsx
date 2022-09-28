@@ -6,13 +6,11 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import CssBaseline from "@mui/material/CssBaseline";
 import useScrollTrigger from "@mui/material/useScrollTrigger";
-import MailIcon from '@mui/icons-material/Mail';
-import DashboardIcon from '@mui/icons-material/Dashboard';
+import MailIcon from "@mui/icons-material/Mail";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import { Menu, MenuItem, Divider, Slide } from "@mui/material";
 import Box from "@mui/material/Box";
 import logo from "../logo.png";
-import carrito from "../carrito.png";
-import login from "../login.png";
 import { Link } from "react-router-dom";
 import SearchBar from "./SearchBar";
 import { StyledEngineProvider } from "@mui/material/styles";
@@ -23,12 +21,16 @@ import {
   filterByGenderInNav,
   getProduct,
   logout as logoutEmail,
+  createUser,
+  signUp
 } from "../redux/action";
 import Cart from "./Cart";
 //import Logout from "./Logout";
 import { useAuth0 } from "@auth0/auth0-react";
 import LoginAuth0 from "./LoginAuth0";
 import { useHistory } from "react-router-dom";
+import ViewOrder from "./ViewOrder";
+import img from "../loginAzul.png";
 
 function HideOnScroll(props) {
   const { children, window } = props;
@@ -49,25 +51,50 @@ export default function Nav(props) {
   const [anchorElm, setAnchorElm] = React.useState(null);
   const [openMenu, setOpenMenu] = React.useState(false);
   const user1 = useSelector((state) => state.user);
-  console.log(user1)
+  const users = useSelector((state) => state.users);
+
   const [log, setLog] = useState(true);
   const { isAuthenticated, logout, user } = useAuth0();
+
+  let usuarioGoogle= {};
+
+ const filtergoogle = users?.some(el=>el.email === user?.email)
+
+
+   React.useEffect(() => {
+    if (user && !filtergoogle ) {
+      usuarioGoogle.lastName = user.family_name;
+      usuarioGoogle.name = user.given_name;
+      usuarioGoogle.email = user.email;
+      usuarioGoogle.password = "HOLA";
+      usuarioGoogle.passConfirmation = "HOLA";
+      usuarioGoogle.image = user.picture;
+      dispatch(createUser(usuarioGoogle));
+      
+    }
+    if(user && filtergoogle){
+      user1.lastName = user.family_name;
+      user1.name = user.given_name;
+      user1.email = user.email;
+      user1.password = "HOLA";
+      user1.passConfirmation = "HOLA";
+      user1.image = user.picture;
+      dispatch(signUp(user1))
+    }
+  }, [dispatch]);
   
   const handleClick = (e) => {
     history.push("/products");
-    dispatch(filterByGenderInNav(e.target.value));
+    setTimeout(() => {
+      dispatch(filterByGenderInNav(e.target.value));
+    }, 290);
   };
   const resetFilters = () => {
     dispatch(getProduct());
+    location.reload();
   };
 
-  /*   function handleSubmit() {
-      console.log(user1);
-      if (Object.keys(user1).length > 0) {
-        addEventListener.location.reload();
-        history.push("/home");
-      }
-    } */
+
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -80,13 +107,28 @@ export default function Nav(props) {
     const value = e.target.innerText;
     setAnchorElm(null);
     if (value === "Logout" && Object.keys(user1).length !== 0) {
-      dispatch(logoutEmail(history));
-    } else value === "Logout" && isAuthenticated;
+      return dispatch(logoutEmail(history));
+    }
+    if (value === "Logout" && Object.keys(user).length !== 0) {
+      console.log("hola");
+      return logout();
+    }
+  };
+
+  const handleProfile = (e) => {
+    e.preventDefault();
+    console.log(e.target.innerText);
+    history.push("/profile");
   };
 
   const goHome = () => {
     history.push("/");
   };
+
+  function handleHistory(e) {
+    e.preventDefault(e);
+    history.push("/order");
+  }
 
   return (
     <>
@@ -103,7 +145,7 @@ export default function Nav(props) {
                   <Typography
                     variant="h4"
                     style={{ color: "#000", marginLeft: "1rem" }}
-                    onClick={resetFilters}
+                    onClick={() => resetFilters()}
                     className={n.reset}
                   >
                     Athens
@@ -249,25 +291,55 @@ export default function Nav(props) {
                   <SearchBar />
                 </Box>
                 <Cart />
-                <Box className={n["login-container"]} display="flex">
+                <Box className={n["login-container"]}>
                   {!isAuthenticated && Object.keys(user1).length === 0 ? (
                     <Link to="/login">
-                      <Button variant="contained" sx={{ marginBottom: "1px" }}>
+                      <Button
+                        variant="contained"
+                        sx={{ marginBottom: "0.7rem" }}
+                      >
                         Sign In
                       </Button>
                     </Link>
-                  ) : user1.image || isAuthenticated ? (
+                  ) : Object.keys(user1).length !== 0 ? (
                     <>
-                      <Tooltip
-                        title={
-                          `Logged as ${user1.name}` || `Logged as ${user.name}`
-                        }
-                      >
+                      <Tooltip title={`Logged as ${user1.name}`}>
+                        {/* <div style={{background: "ligth-blue", borderRadius: "50%", width:"1.8rem", height: "1.8rem" }}> */}
                         <img
                           alt="avatar"
                           height={30}
                           width={30}
-                          src={user1.image || user.image}
+                          src={user1.image ? user1.image : img}
+                          loading="lazy"
+                          style={{ borderRadius: "50%" }}
+                          onClick={handleSubmit}
+                        />
+                        {/* </div> */}
+                      </Tooltip>
+                      <Menu
+                        open={openMenu}
+                        anchorEl={anchorElm}
+                        onClose={handleClose}
+                      >
+                        <MenuItem onClick={handleProfile}>Profile</MenuItem>
+                        <Divider />
+                        <MenuItem onClick={(e) => handleHistory(e)}>
+                          My purchases
+                        </MenuItem>
+                        <Divider />
+                        <MenuItem name="balance" onClick={handleClose}>
+                          Logout
+                        </MenuItem>
+                      </Menu>
+                    </>
+                  ) : (
+                    <>
+                      <Tooltip title={`Logged as ${user.given_name}`}>
+                        <img
+                          alt="avatar"
+                          height={30}
+                          width={30}
+                          src={user.picture}
                           loading="lazy"
                           style={{ borderRadius: "50%" }}
                           onClick={handleSubmit}
@@ -278,38 +350,11 @@ export default function Nav(props) {
                         anchorEl={anchorElm}
                         onClose={handleClose}
                       >
-                        <MenuItem onClick={handleClose}>Profile</MenuItem>
+                        <MenuItem onClick={handleProfile}>Profile</MenuItem>
                         <Divider />
-                        <MenuItem name="balance" onClick={handleClose}>
-                          Logout
+                        <MenuItem onClick={(e) => handleHistory(e)}>
+                          My purchases
                         </MenuItem>
-                      </Menu>
-                    </>
-                  ) : (
-                    <>
-                      <Tooltip
-                        title={
-                          `Logged as ${user1.name}` || `Logged as ${user.name}`
-                        }
-                      >
-                        <AccountCircleIcon
-                          onClick={handleSubmit}
-                          sx={{
-                            color:'gray',
-                            fontSize: "large",
-                            marginBottom: "0.5rem",
-                            width: "30px",
-                            height: "30px",
-                            marginRight: "1rem",
-                          }}
-                        />
-                      </Tooltip>
-                      <Menu
-                        open={openMenu}
-                        anchorEl={anchorElm}
-                        onClose={handleClose}
-                      >
-                        <MenuItem onClick={handleClose}>Profile</MenuItem>
                         <Divider />
                         <MenuItem name="balance" onClick={handleClose}>
                           Logout
@@ -357,7 +402,7 @@ export default function Nav(props) {
                   <Divider />
                   <MenuItem name="balance" onClick={handleClose} ><LoginAuth0 className={n.google} /></MenuItem>
                 </Menu>
- */}
+                    */}
                   {/* {isAuthenticated ? <Logout className={n.google} /> : } */}
                 </Box>
               </Box>

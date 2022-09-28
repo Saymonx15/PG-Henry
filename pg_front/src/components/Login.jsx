@@ -60,6 +60,8 @@ export default function SignUp() {
   const { isAuthenticated } = useAuth0();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
+  // const { user } = useAuth0();
+  // console.log(user)
   const history = useHistory();
   const handleChange = (e) => {
     e.preventDefault();
@@ -76,7 +78,7 @@ export default function SignUp() {
   const handleSubmit = (event) => {
     event.preventDefault();
     if (input.email && input.password) {
-      dispatch(signUp(input));
+      dispatch(signUp(input,history));
       // if(error!==''){
       // }
       //return history.push('/')

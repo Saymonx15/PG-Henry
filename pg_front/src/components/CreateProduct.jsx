@@ -8,7 +8,12 @@ import { Box } from "@mui/system";
 import h from "./Home.module.css";
 import { useDispatch, useSelector } from "react-redux";
 import CardContent from "@mui/material/CardContent";
-import { addToCart, removeDupsCart, mercadoPago } from "../redux/action";
+import {
+  addToCart,
+  removeDupsCart,
+  mercadoPago,
+  cleanDetail,
+} from "../redux/action";
 import plop from "../asset/plop.mp3";
 import { Link, useHistory } from "react-router-dom";
 
@@ -40,13 +45,18 @@ export default function CardProduct(props) {
   async function handlePay(e) {
     e.preventDefault();
     if (items.some((i) => props.id == i.id)) {
+      console.log("Despachando accion para pago");
       dispatch(mercadoPago({ price: props.price * official }));
       history.push("/entrega");
     } else {
       dispatch(addToCart(props.id));
       dispatch(removeDupsCart(props.id));
+      dispatch(mercadoPago({ price: props.price * official }));
       history.push("/entrega");
     }
+  }
+  function handleClick() {
+    dispatch(cleanDetail());
   }
 
   return (
@@ -63,19 +73,31 @@ export default function CardProduct(props) {
       onMouseOver={() => setTranslate("translateY(-0.5rem)")}
       onMouseLeave={() => setTranslate("")}
     >
-      <CardMedia
-        component="img"
-        height="250"
-        image={props.Image}
-        alt={props.title}
-        sx={{ position: "relative" }}
-        className={props.stock > 0 ? "" : h.outOfStock}
-      />
+      <Link to={`/detail/${props.id}`}>
+        <CardMedia
+          component="img"
+          height="250"
+          image={props.Image}
+          alt={props.title}
+          sx={{ position: "relative" }}
+          className={props.stock > 0 ? "" : h.outOfStock}
+        />
+      </Link>
+
       <Typography className={h.price} sx={styles}>
         ${props.price}.00
       </Typography>
       <CardContent>
-        <Typography gutterBottom variant="h5" component="div">
+        <Typography
+          gutterBottom
+          variant="h5"
+          component="div"
+          sx={{
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis",
+          }}
+        >
           {props.title}
         </Typography>
         <Box display="flex">
@@ -88,8 +110,8 @@ export default function CardProduct(props) {
         {props.stock > 0 ? (
           <Button
             onClick={(e) => handlePay(e)}
-            href={"/entrega"}
-            size="small"
+            //href={"/entrega"}
+            size="large"
             // className={props.stock < 1 ? h.buyBtnStock : ""}
           >
             BUY
@@ -109,7 +131,9 @@ export default function CardProduct(props) {
           ADD TO CART
         </Button>
         <Link to={`/detail/${props.id}`}>
-          <Button size="small">DETAIL</Button>
+          <Button size="small" onClick={handleClick}>
+            DETAIL
+          </Button>
         </Link>
         {/* target="_blank" */}
       </CardActions>

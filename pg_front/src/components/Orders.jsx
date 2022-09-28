@@ -9,13 +9,15 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  Menu,
   MenuItem,
   Stack,
   TextField,
   Typography,
   Tooltip,
 } from '@mui/material';
-import { Delete, Password, AccountCircle } from '@mui/icons-material';
+
+import { getAllOrders, changeOrderStatus, editProduct as editStock, getOrderByUser } from '../redux/action';
 import { useSelector, useDispatch } from 'react-redux';
 
 const Orders = () => {
@@ -23,36 +25,174 @@ const Orders = () => {
   const [edit, setEdit] = useState(false);
   const [rowSelection, setRowSelection] = useState({});
   const dispatch = useDispatch();
-  const orders = useSelector(state=>state.order);
+  const orders = useSelector(state => state.order);
+  const [table,setTable] = useState(orders);
+  const products = useSelector(state => state.productAdmin)
+  const status = ['cancelled', 'completed']
+  //const [table,setTable] = useState(orders);
+
+  const handleStatus = (row, value) => {
+    row.original.orderStatus = value;
+    let { id, orderStatus, email, total, idProduct, titleProduct } = row.original;
+    Swal.fire({
+      title: `Do you want change at ${row.original.orderStatus} to Order number ${row.original.id}?`,
+      text: "You can be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, change status!'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        dispatch(changeOrderStatus(id, orderStatus, email, total))
+        setEdit(true)
+        setTable([...table]); //re-render with new data
+        if (value === 'completed') {
+          idProduct = idProduct.split(', ')
+          titleProduct = titleProduct.split(', ')
+          var productPurchase = []
+          var qtyProduct = []
+          for (let i = 0; i < idProduct.length; i++) {
+            productPurchase[i] = products.find((e) => e.id === parseInt(idProduct[i]))
+            qtyProduct[i] = titleProduct.filter(e => e === productPurchase[i].title).length
+            productPurchase[i].stock = productPurchase[i].stock - qtyProduct[i];
+            const { id, stock } = productPurchase[i];
+            dispatch(editStock(id, stock));
+          }
+        }
+      }
+    })
+  }
 
   useEffect(() => {
-    if (edit) {
-      //dispatch(getAllUsers());
-    }
-    setEdit(() => false)
-  }, [edit])
+    // if(edit) {
+    //   setTimeout(()=>{
+    //     dispatch(getAllOrders());
+    //     setEdit(()=>false);
+    //   },500)
+    //}    
+    setTable(()=>orders);
+    setEdit(false)
+  }, [orders.length,edit])
 
-  
-   const columns = useMemo(
+  const columns = useMemo(
     () => [
       {
         accessorKey: 'id',
-        header: 'ID',
+        header: 'Order number',
         enableColumnOrdering: false,
+        enableFiltering: false,
         enableEditing: false, //disable editing on this column
-        enableSorting: false,
-        size: 80,
-      },
+        size: 40,
+      },    
       {
-        accesorKey: 'orderStatus', //accessorFn used to join multiple data into a single cell        
-        header: 'Status',
-        size: 50,       
-      },
-      {
-        accessorKey: 'adressShipping',
-        header: 'Address Shipping',
+        accessorKey: 'idProduct',
+        header: 'Purchase products',
         enableEditing: false,
-      },      
+        Cell: ({ cell, row }) => {
+          let idProduct = row.original.idProduct.split(', ')
+          let titleProduct = row.original.titleProduct.split(', ')          
+          var productPurchase = []
+          var qtyProduct = []
+          for (let i = 0; i < idProduct.length; i++) {              
+            productPurchase[i] = products.find((e) => e.id === parseInt(idProduct[i]))                    
+            qtyProduct[i] = titleProduct.filter(e => e === productPurchase[i]?.title).length
+          }          
+          return (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+              }}
+            >
+              {productPurchase.map((e,i) =>
+              <Tooltip title={`${e?.title}`} key={i}>
+                <img
+                  alt="avatar"
+                  height={30}
+                  src={e?.image}
+                  loading="lazy"
+                  key = { i }
+                  style={{ borderRadius: '50%' }}
+                />
+                </Tooltip>
+              )}
+            </Box>
+          )
+        }
+      },
+      {
+        accessorKey: 'email',
+        header: 'User',
+        enableEditing: false,
+      },
+      {
+        accessorKey: 'createdAt',
+        header: 'Creation Date',
+        enableEditing: false,
+        Cell: ({ cell }) => {
+          let createdAt = new Date(cell.getValue())
+          return (
+            <>
+            {`${createdAt.getMonth() + 1}-${createdAt.getDate()}-${createdAt.getFullYear()}`}
+            </>
+          )
+        }
+      },
+
+      {
+        accessorKey: 'titleProduct',
+        header: 'Product Purchase',
+        enableEditing: false,
+      },
+      {
+        accessorKey: 'orderStatus',
+        header: 'Status',
+        size: 50,
+        Cell: ({ cell }) => (
+          <>
+          <Tooltip title="Double click for edit">
+            <Box
+              sx={(theme) => ({
+                backgroundColor:
+                  cell.getValue() === 'cancelled'
+                    ? theme.palette.error.dark
+                    : cell.getValue() === 'created'
+                      ? theme.palette.warning.dark
+                      : theme.palette.success.dark,
+                borderRadius: '0.25rem',
+                color: '#fff',
+                maxWidth: '9ch',
+                p: '0.25rem',
+              })}
+            >
+              {cell.getValue()}
+            </Box>
+          </Tooltip>
+          </>
+        ),
+        muiTableBodyCellEditTextFieldProps: ({ cell, row }) => ({
+          //select: cell.getValue()!=="created"?false:true, //change to select for a dropdown
+          select: true,
+          onBlur: (event) => {
+            row.original.orderStatus === "created"
+              ?
+              handleStatus(row, event.target.value)
+              :
+              null;
+          },
+          children:
+            status.map((e) => (
+              <MenuItem key={e}
+                disabled={cell.getValue() !== "created"}
+                value={e}                
+              >
+                {e}
+              </MenuItem>
+            )),
+        }),
+      },
     ],
     [],
   );
@@ -69,89 +209,34 @@ const Orders = () => {
         },
       }}
       columns={columns}
-      data={orders}
-      initialState={{ columnVisibility: { id: false } }}
+      data={table}
+      enableColumResizing
+      initialState={{ columnVisibility: { titleProduct: false } }}
       positionRowActions="right"
-      /* muiTableHeadCellProps={{
+      muiTableHeadCellProps={{
         sx: {
-          backgroundColor: 'black',
+          backgroundColor: '#0833A2',
           color: 'white',
         },
-      }} */
+      }}
       /*    muiTableBodyCellProps={{
            sx:{
              backgroundColor:'#9c9c9c'
            }
          }} */
-      getRowId={(row) => row.id}
+      editingMode="cell"
+      enableEditing
+      enableMultiRowSelection={false}
+      enableSelectAll={false}
+      onRowSelectionChange={setRowSelection}
+      state={{ rowSelection }} 
+      getRowId={(row) => row.id} 
+      
       muiSelectCheckboxProps={({ row }) => ({
         color: 'secondary',
         disabled: row.original.isAccountLocked,
       })}
       enableColumnOrdering
-      renderTopToolbarCustomActions={({ table }) => {
-        const handleLock = () => {
-          table.getSelectedRowModel().flatRows.map((row) => {
-            console.log(row.index);
-            alert('Lock ' + row.getValue('name'));
-          });
-        };
-
-        const handleRole = () => {
-          table.getSelectedRowModel().flatRows.map((row, values) => {
-            if (row.original.rol !== 'admin') row.original.rol = "admin";
-            else row.original.rol = 'user';
-            //Guarda los datos a enviar al back;
-            const { id, ...body } = row.original;
-            //setTableData([...tableData]);
-            Swal.fire({
-              title: `Do you want change ${row.original.rol} to ${row.getValue('name')}?`,
-              text: "You can be able to revert this!",
-              icon: 'warning',
-              showCancelButton: true,
-              confirmButtonColor: '#3085d6',
-              cancelButtonColor: '#d33',
-              confirmButtonText: 'Yes, change role!'
-            }).then((result) => {
-              if (result.isConfirmed) {
-                dispatch(changeRoleUser(id, body))
-                setEdit(() => true);
-                Swal.fire(
-                  'Role changed!',
-                  `${row.original.name} now is ${row.original.rol}`,
-                  'success'
-                )
-              }
-            })
-          });
-        };
-
-        const handleOrder = () => {
-          table.getSelectedRowModel().flatRows.map((row) => {
-          });
-        };
-
-        return (
-          <Box sx={{ display: 'flex', gap: '1rem' }}>
-            <Button
-              color="error"
-              disabled={table.getSelectedRowModel().flatRows.length === 0}
-              onClick={handleRole}
-              variant="contained"
-            >
-              CHANGE ROLE
-              </Button>
-            <Button
-              color="info"
-              disabled={table.getSelectedRowModel().flatRows.length === 0}
-              onClick={handleOrder}
-              variant="contained"
-            >
-              USER'S ORDERS
-              </Button>
-          </Box>
-        );
-      }}      
     />
     </>
   );

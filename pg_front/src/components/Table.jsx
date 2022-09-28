@@ -1,5 +1,7 @@
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import MaterialReactTable from 'material-react-table';
+import Swal from 'sweetalert2';
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import {
   Box,
   Button,
@@ -16,8 +18,7 @@ import {
 } from '@mui/material';
 import { Delete, Edit } from '@mui/icons-material';
 // import { data } from './data';
-import { useSelector, useDispatch } from 'react-redux';
-import { createProduct, editProduct, getProduct, deleteProduct } from '../redux/action'
+import { useSelector, useDispatch } from 'react-redux';import { createProduct, editProduct, getProduct, deleteProduct } from '../redux/action'
 import FormProduct from './FormProduct';
 
 function validate(input) {
@@ -57,6 +58,7 @@ const Example = () => {
   const handleCreateNewRow = (values) => {
     tableData.push(values);
     setTableData([...tableData]);
+
   };
 
 
@@ -76,18 +78,26 @@ const Example = () => {
 
   const handleDeleteRow = useCallback(
     (row) => {
-      if (
-        !confirm(`Are you sure you want to delete ${row.getValue('title')}`)
-      ) {
-        return;
-      }
+      Swal.fire({
+        title: `Do you want delete ${row.getValue('title')}?`,
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete product!'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          tableData.splice(row.index, 1);      
+          setTableData([...tableData]);
+          const id = row.getValue("id")
+          const title = row.getValue("title")
+          dispatch(deleteProduct(id,title));
+          setEdit(()=>true);      
+        }
+      })      
       //send api delete request here, then refetch or update local table data for re-render
-      tableData.splice(row.index, 1);      
-      setTableData([...tableData]);
-      const id = row.getValue("id")
-      console.log(id);
-      dispatch(deleteProduct(id));
-      setEdit(()=>true);
+      
     },
     [tableData],
   );
@@ -137,7 +147,7 @@ const Example = () => {
         accessorKey: 'title', //accessorFn used to join multiple data into a single cell
         id: 'title', //id is still required when using accessorFn instead of accessorKey
         header: 'Title',
-        size: 240,
+        size: 120,
         Cell: ({ cell, row }) => (
           <Box
             sx={{
@@ -145,14 +155,14 @@ const Example = () => {
               alignItems: 'center',
               gap: '1rem',
             }}
-          >
-            <img
-              alt="avatar"
-              height={30}
-              src={row.original.image}
-              loading="lazy"
-              style={{ borderRadius: '50%' }}
-            />
+          >            
+              <img
+                alt="avatar"
+                height={30}
+                src={row.original.image}
+                loading="lazy"
+                style={{ borderRadius: '50%' }}
+              />                  
             <Typography>{cell.getValue()}</Typography>
           </Box>
         ),
@@ -160,7 +170,7 @@ const Example = () => {
       {
         accessorKey: 'brand',
         header: 'Brand',
-        size: 20,
+        size: 40,
         muiTableBodyCellEditTextFieldProps: ({ cell }) => ({
           ...getCommonEditTextFieldProps(cell),
         }),
@@ -168,7 +178,7 @@ const Example = () => {
       {
         accessorKey: 'genre',
         header: 'Gender',
-        size:20,
+        size:40,
         muiTableBodyCellEditTextFieldProps: ({ cell }) => ({
           ...getCommonEditTextFieldProps(cell),
         }),
@@ -176,7 +186,7 @@ const Example = () => {
       {
         accessorKey: 'sport',
         header: 'Sport',
-        size:20,
+        size:40,
         muiTableBodyCellEditTextFieldProps: ({ cell }) => ({
           ...getCommonEditTextFieldProps(cell),
         }),
@@ -184,7 +194,7 @@ const Example = () => {
       {
         accessorKey: 'price',
         header: 'Price',
-        size: 20,
+        size: 30,
         Cell: ({ cell }) => (
           <Box
             sx={(theme) => ({
@@ -216,7 +226,7 @@ const Example = () => {
       {
         accessorKey: 'discount',
         header: 'Discount',
-        size: 20,
+        size: 30,
         muiTableBodyCellEditTextFieldProps: ({ cell }) => ({
           ...getCommonEditTextFieldProps(cell),
           type: 'number',
@@ -234,7 +244,7 @@ const Example = () => {
       {
         accessorKey: 'description',
         header: 'Description',
-        size: 20,
+        size: 60,
         muiTableBodyCellEditTextFieldProps: ({ cell }) => ({
           ...getCommonEditTextFieldProps(cell),
         }),
@@ -266,10 +276,17 @@ const Example = () => {
       <MaterialReactTable
         displayColumnDefOptions={{
           'mrt-row-actions': {
+            header: 'Edit', //change "Actions" to "Edit"
             muiTableHeadCellProps: {
               align: 'center',
             },
-            size: 50,
+            size: 60,
+          },
+        }}
+        muiTableHeadCellProps={{
+          sx: {
+            backgroundColor: '#00BB29',
+            color: 'white',
           },
         }}
         columns={columns}
@@ -277,6 +294,7 @@ const Example = () => {
         initialState={{ columnVisibility: { id: false } }}
         editingMode="modal" //default
         enableColumnOrdering
+        enableColumnResizing
         enableEditing
         onEditingRowSave={handleSaveRowEdits}
         renderRowActions={({ row, table }) => (
