@@ -41,15 +41,17 @@ import {
   GET_ORDER_BY_USER,
   CREATE_REVIEW,
   DUPLICATE_REVIEW,
-  CLEAN_DETAIL
+  CREATE_BILL,
+  VIEW_ORDER,
+  CLEAN_DETAIL,
 } from "./const";
-
-//const URL = "https://pg-athen.herokuapp.com"
+const URL = "https://pg-athen.herokuapp.com"
 //const URL = "https://localhost:3001"
 
-export function signUp(body) {
-  return async function (dispatch) {
-    try {
+export function signUp(body,history) {
+  return async function (dispatch) {    
+      console.log(body)
+      try{
       let user = await axios.post(`/api/login`, body);
       //user.data.expire = new(new Date().getTime() + user.data.expire)
       localStorage.setItem(`userDetails`, JSON.stringify(user.data));
@@ -57,30 +59,23 @@ export function signUp(body) {
         type: SIGN_UP,
         payload: user.data.data,
       });
-    } catch (e) {
-      Swal.fire({
-        title: "Error!",
-        text: "Email or password invalid",
-        icon: "error",
-        confirmButtonText: "GO HOME",
-      });
-      // Swal.fire(
-      //   "¡User created successfully!",
-      //   "¡Thank you for visiting our website!"
-      // );
-      // console.log(e)
-    }
+      } catch(e){
+        Swal.fire({
+            title: "Error!",
+            text: "Email or password invalid",
+            icon: "error",
+            confirmButtonText: "GO HOME",
+          });
+      }    
   };
-}
+} 
 
 export function mercadoPago(body) {
   return async function (dispatch) {
     try {
-      let order = await axios.post(
-        `/api/crear-orden`,
-        body
-      );
-      console.log(order.data.url);
+      console.log("En funcion MP")
+      let order = await axios.post(`${URL}/api/crear-orden`,body);
+      console.log(order.data);
       return dispatch({
         type: ORDER_MERCADOPAGO,
         payload: order.data.url,
@@ -91,11 +86,17 @@ export function mercadoPago(body) {
   };
 }
 
-export function createOrder(body) {
+export function createOrder(body, texto) {
   return async function (dispatch) {
     try {
-      let order = await axios.post(`/api/order`, body);
-      console.log(order);
+      const bill = {};
+      let order = await axios.post(`${URL}/api/order`, body);
+      const { id } = order.data;
+      bill.orderId = id;  
+      bill.totalAmount = body.totalPrice;      
+      bill.celNumber = texto.celNumber;
+      bill.email = texto.email;
+      localStorage.setItem(`billDetails`, JSON.stringify(bill));
       return dispatch({
         type: CREATE_ORDER,
         payload: order,
@@ -106,71 +107,76 @@ export function createOrder(body) {
   };
 }
 
-export function createReview(id,body) {
-   console.log(body)
-   return async function (dispatch) {
+export function viewOrder(id) {
+  return async function (dispatch) {
     try {
-      let {review} = await axios.post(`api/product/review/${id}`, body);
+      let json = await axios(`${URL}/api/order/user/${id}`);
+      console.log(json.data);
+      return dispatch({
+        type: VIEW_ORDER,
+        payload: json.data,
+      });
+    } catch (e) {
+      console.log(e);
+    }
+  };
+}
+
+export function createReview(id, body) {
+  console.log(body);
+  return async function (dispatch) {
+    try {
+      let { review } = await axios.post(`${URL}/api/product/review/${id}`, body);
       console.log(review.data);
       return dispatch({
         type: CREATE_REVIEW,
-         payload: review.data
+        payload: review.data,
       });
     } catch (e) {
       return dispatch({
         type: DUPLICATE_REVIEW,
-         payload: "You have post in this product"
+        payload: "You have post in this product",
       });
     }
   };
 }
 
+export function getOrderById(id) {
+  return async function (dispatch) {
+    try {
+      let orderId = await axios.get(`${URL}/api/order/${id}`);
 
-
-export function getOrderById(id){
-  
-  return async function(dispatch){
-    try{      
-      let orderId = await axios.get(`/api/order/${id}`)
-      
       return dispatch({
-        type:GET_ORDER_BY_ID,
-        payload: orderId.data
-      })
+        type: GET_ORDER_BY_ID,
+        payload: orderId.data,
+      });
+    } catch (e) {
+      console.log(e);
     }
-    catch(e){
-      console.log(e)
-    }
-
-  }
+  };
 }
 
-export function getOrderByUser(id){
-  return async function(dispatch){
-    try{      
-      let orderUser = await axios.get(`/api/order/user/${id}`)
-      
+export function getOrderByUser(id) {
+  return async function (dispatch) {
+    try {
+      let orderUser = await axios.get(`${URL}/api/order/user/${id}`);
+      // console.log(orderUser)
       return dispatch({
-        type:GET_ORDER_BY_ID,
-        payload: orderUser.data
-      })
+        type: GET_ORDER_BY_USER,
+        payload: orderUser.data,
+      });
+    } catch (e) {
+      console.log(e);
     }
-    catch(e){
-      console.log(e)
-    }
-
-  }
+  };
 }
 
-
-
-
-export function changeOrderStatus(id,orderStatus,email){
-  let body = {orderStatus,email}
-  console.log(body)
-  return async function(dispatch){
-    try{
-      let statusOrder = await axios.put(`/api/order/${id}`,body)
+export function changeOrderStatus(id, orderStatus, email) {
+  let body = { orderStatus, email };
+  console.log(body);
+  return async function (dispatch) {
+    try {
+      let statusOrder = await axios.put(`${URL}/api/order/${id}`, body);
       Swal.fire({
         title: "Changed status!",
         text: `Order number ${id} is now ${orderStatus}`,
@@ -178,10 +184,9 @@ export function changeOrderStatus(id,orderStatus,email){
         confirmButtonText: "ACCEPT",
       });
       return dispatch({
-        type:CHANGE_STATUS_ORDER        
-      })
-    }
-    catch(e){
+        type: CHANGE_STATUS_ORDER,
+      });
+    } catch (e) {
       Swal.fire({
         title: "Error changing status!",
         text: `There was a trouble changing order status. Please try again`,
@@ -189,15 +194,14 @@ export function changeOrderStatus(id,orderStatus,email){
         confirmButtonText: "ACCEPT",
       });
     }
-  }
+  };
 }
-
 
 export function passwordRemember(body) {
   return async function (dispatch) {
     try {
       console.log(body);
-      let password = await axios.post(`/api/olvide-password`, body);
+      let password = await axios.post(`${URL}/api/olvide-password`, body);
       //user.data.expire = new(new Date().getTime() + user.data.expire)
       // localStorage.setItem(`userDetails`, JSON.stringify(user.data));
       console.log(password);
@@ -214,28 +218,30 @@ export function passwordRemember(body) {
 export function resetPassword(body) {
   return async function (dispatch) {
     try {
-      let newPassword = await axios.post(`/api/olvide-passwords`, body);
+      let newPassword = await axios.post(`${URL}/api/olvide-passwords`, body);
       //user.data.expire = new(new Date().getTime() + user.data.expire)
       // localStorage.setItem(`userDetails`, JSON.stringify(user.data));
       console.log(newPassword);
-      Swal.fire({
-        title:'User password reset!',
-        text:`The user was asked to change password`,
-        icon: 'success',
-        confirmButtonText:"ACCEPT"        
-        }
-      )
-      return dispatch({
-        type: RESET_PASSWORD,
-        payload: newPassword,
-      });
+
+      return (
+        dispatch({
+          type: RESET_PASSWORD,
+          payload: newPassword,
+        }),
+        Swal.fire({
+          title: "User password reset!",
+          text: `The user was asked to change password`,
+          icon: "success",
+          confirmButtonText: "ACCEPT",
+        })
+      );
     } catch (e) {
       Swal.fire({
         title: "Error resetting user's password!",
         text: `There was a trouble resetting user's password Please try again`,
         icon: "error",
         confirmButtonText: "ACCEPT",
-      });    
+      });
     }
   };
 }
@@ -243,19 +249,21 @@ export function resetPassword(body) {
 export function createUser(body) {
   return async function (dispatch) {
     try {
-      let user = await axios.post(`/api/user`, body);
+      let user = await axios.post(`${URL}/api/user`, body);
       console.log(user.data.data.user);
-      Swal.fire({
-        title:'User created!',
-        text:`Your user was created successfully`,
-        icon: 'success',
-        confirmButtonText:"ACCEPT"        
-        }
-      )
-      return dispatch({
-        type: CREATE_USER,
-        payload: user.data.data.user,
-      });
+
+      return (
+        dispatch({
+          type: CREATE_USER,
+          payload: user.data.data.user,
+        }),
+        Swal.fire({
+          title: "User created!",
+          text: `Your user was created successfully`,
+          icon: "success",
+          confirmButtonText: "ACCEPT",
+        })
+      );
     } catch (e) {
       Swal.fire({
         title: "Error creating user!",
@@ -272,7 +280,7 @@ export function getAllUsers(body) {
     try {
       // const tokenJSON = JSON.parse(localStorage.getItem("userDetails"));
       // const { token } = tokenJSON;
-      let users = await axios.get(`/api/user`, {
+      let users = await axios.get(`${URL}/api/user`, {
         headers: {
           Authorization: `Bearer 23k4!jhisd&jhf8*asfdasdf$dsf45%&`,
         },
@@ -296,7 +304,7 @@ export function changeRoleUser(id, body) {
     try {
       const tokenJSON = JSON.parse(localStorage.getItem("userDetails"));
       const { token } = tokenJSON;
-      let userChange = await axios.put(`/api/user/${id}`, body, {
+      let userChange = await axios.put(`${URL}/api/user/${id}`, body, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -305,12 +313,11 @@ export function changeRoleUser(id, body) {
       // localStorage.setItem(`userDetails`, JSON.stringify(user.data));
       //console.log(user.data.data.user);
       Swal.fire({
-        title: 'Role changed!',
+        title: "Role changed!",
         text: `${body.name} now is ${body.rol}`,
-        icon:'success',
-        confirmButtonText: 'ACCEPT'
-        }
-      )
+        icon: "success",
+        confirmButtonText: "ACCEPT",
+      });
       return dispatch({
         type: CHANGE_ROLE_USER,
         payload: userChange.data,
@@ -326,12 +333,12 @@ export function changeRoleUser(id, body) {
   };
 }
 
-export function deleteUser(id,name) {
+export function deleteUser(id, name) {
   return async function (dispatch) {
     try {
       const tokenJSON = JSON.parse(localStorage.getItem("userDetails"));
       const { token } = tokenJSON;
-      let userDelete = await axios.delete(`/api/user/${id}`, {
+      let userDelete = await axios.delete(`${URL}/api/user/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -340,12 +347,11 @@ export function deleteUser(id,name) {
       // localStorage.setItem(`userDetails`, JSON.stringify(user.data));
       //console.log(user.data.data.user);
       Swal.fire({
-        title:'User deleted!',
-        text:`${name} was deleted`,
-        icon:'success',
-        confirmButtonText: "ACCEPT"
-        }
-      )
+        title: "User deleted!",
+        text: `${name} was deleted`,
+        icon: "success",
+        confirmButtonText: "ACCEPT",
+      });
       return dispatch({
         type: DELETE_USER,
         payload: userDelete.data,
@@ -356,7 +362,8 @@ export function deleteUser(id,name) {
         text: `The user ${name} could not deleted. Please try again`,
         icon: "error",
         confirmButtonText: "ACCEPT",
-      });    }
+      });
+    }
   };
 }
 
@@ -365,12 +372,12 @@ export function createProduct(body) {
   body.discount = parseInt(body.discount);
   body.stock = parseInt(body.stock);
   body.sport = body.sport.join();
-  console.log('body',body)
-  return async function(dispatch){
-    try{
+  console.log("body", body);
+  return async function (dispatch) {
+    try {
       const tokenJSON = JSON.parse(localStorage.getItem("userDetails"));
       const { token } = tokenJSON;
-      let newProduct = await axios.post(`/api/product`, body, {
+      let newProduct = await axios.post(`${URL}/api/product`, body, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -388,8 +395,8 @@ export function createProduct(body) {
         icon: "error",
         confirmButtonText: "Back",
       });
-    }   
-} 
+    }
+  };
 }
 
 export function editProduct(id, body) {
@@ -398,7 +405,7 @@ export function editProduct(id, body) {
       const tokenJSON = JSON.parse(localStorage.getItem("userDetails"));
       const { token } = tokenJSON;
       console.log(body);
-      let putProduct = await axios.put(`/api/product/${id}`, body, {
+      let putProduct = await axios.put(`${URL}/api/product/${id}`, body, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -419,23 +426,22 @@ export function editProduct(id, body) {
   };
 }
 
-export function deleteProduct(id,title) {
+export function deleteProduct(id, title) {
   return async function (dispatch) {
     try {
       const tokenJSON = JSON.parse(localStorage.getItem("userDetails"));
       const { token } = tokenJSON;
-      let deleteProduct = await axios.delete(`/api/product/${id}`, {
+      let deleteProduct = await axios.delete(`${URL}/api/product/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       Swal.fire({
-        title:'Deleted product!',
-        text:`${title} was deleted`,
-        icon:'success',
-        confirmButtonText: "ACCEPT"
-        }
-      )
+        title: "Deleted product!",
+        text: `${title} was deleted`,
+        icon: "success",
+        confirmButtonText: "ACCEPT",
+      });
       return dispatch({
         type: DELETE_PRODUCT,
         payload: id,
@@ -454,7 +460,7 @@ export function deleteProduct(id,title) {
 export function getProduct() {
   return async function (dispatch) {
     try {
-      let res = await axios.get(`/api/products`);
+      let res = await axios.get(`${URL}/api/products`);
       // console.log("Products", res.data);
       return dispatch({
         type: GET_PRODUCTS,
@@ -469,11 +475,13 @@ export function getProduct() {
 export function searchProduct(payload) {
   return async function (dispatch) {
     try {
-      var product = await axios.get(`/api/products?title=${payload}`, {});
-      return dispatch({
-        type: SEARCH_PRODUCT,
-        payload: product.data,
-      });
+      var product = await axios.get(`${URL}/api/products?title=${payload}`, {});
+      setTimeout(() => {
+        return dispatch({
+          type: SEARCH_PRODUCT,
+          payload: product.data,
+        });
+      }, 290);
     } catch (error) {
       Swal.fire({
         title: "Product not found!",
@@ -530,11 +538,9 @@ export function orderByPrice(payload) {
 }
 
 export function detailProduct(id) {
-  console.log(id);
   return async function (dispatch) {
     try {
-      var product = await axios.get(`/api/product/${id}`);
-      console.log(product);
+      var product = await axios.get(`${URL}/api/product/${id}`);
       return dispatch({
         type: DETAIL_PRODUCT,
         payload: product.data,
@@ -557,7 +563,7 @@ export function logout(history) {
 export function checkLogin(id, token) {
   // console.log(id);
   return async function (dispatch) {
-    let user = await axios.get(`/api/user/${id}`, {
+    let user = await axios.get(`${URL}/api/user/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -617,32 +623,29 @@ export function fetchCartItems(payload) {
 }
 
 export function filterByCarousel(payload) {
-  // console.log(payload);
   return {
     type: FILTER_BRAND_CAROUSEL,
     payload, //Acá llegaría el tipo de genero
   };
 }
 
-export function getAllOrders(){
-  return async function(dispatch){
-    try{
-      let order = await axios.get(`/api/order`);
+export function getAllOrders() {
+  return async function (dispatch) {
+    try {
+      let order = await axios.get(`${URL}/api/order`);
       return dispatch({
         type: GET_ALL_ORDERS,
-        payload: order.data
-      })
-    }
-    catch(e){
+        payload: order.data,
+      });
+    } catch (e) {
       console.log(e);
     }
-
-  }
+  };
 }
 
 export function getReviews() {
   return async function (dispatch) {
-    const resp = await axios.get(`/api/review`);
+    const resp = await axios.get(`${URL}/api/review`);
     const data = resp.data;
     console.log(resp);
     if (resp) {
@@ -651,11 +654,30 @@ export function getReviews() {
   };
 }
 
+export function createBill(body) {
+  return async function (dispatch) {
+    try {
+      let bill = await axios.post(`${URL}/api/bill`, body);
+      Swal.fire({
+        title: "Check your email!",
+        text: `Your bill was sent to ${body.email}`,
+        icon: "success",
+        confirmButtonText: "ACCEPT",
+      });
+      return dispatch({
+        type: CREATE_BILL,
+        payload: bill.data,
+      });
+    } catch (e) {
+      console.log(e);
+    }
+  };
+}
 
 export function cleanDetail() {
-  return async function(dispatch) {
-      return dispatch({
-          type: CLEAN_DETAIL
-      })
-
-  }}
+  return async function (dispatch) {
+    return dispatch({
+      type: CLEAN_DETAIL,
+    });
+  };
+}

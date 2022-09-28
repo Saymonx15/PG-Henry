@@ -17,7 +17,7 @@ import {
   Tooltip,
 } from '@mui/material';
 
-import { getAllOrders, changeOrderStatus, editProduct as editStock } from '../redux/action';
+import { getAllOrders, changeOrderStatus, editProduct as editStock, getOrderByUser } from '../redux/action';
 import { useSelector, useDispatch } from 'react-redux';
 
 const Orders = () => {
@@ -26,8 +26,10 @@ const Orders = () => {
   const [rowSelection, setRowSelection] = useState({});
   const dispatch = useDispatch();
   const orders = useSelector(state => state.order);
+  const [table,setTable] = useState(orders);
   const products = useSelector(state => state.productAdmin)
   const status = ['cancelled', 'completed']
+  //const [table,setTable] = useState(orders);
 
   const handleStatus = (row, value) => {
     row.original.orderStatus = value;
@@ -43,7 +45,8 @@ const Orders = () => {
     }).then((result) => {
       if (result.isConfirmed) {
         dispatch(changeOrderStatus(id, orderStatus, email, total))
-        setEdit(true);
+        setEdit(true)
+        setTable([...table]); //re-render with new data
         if (value === 'completed') {
           idProduct = idProduct.split(', ')
           titleProduct = titleProduct.split(', ')
@@ -62,11 +65,15 @@ const Orders = () => {
   }
 
   useEffect(() => {
-    if (orders.length === 0 || edit) {
-      dispatch(getAllOrders());
-      setEdit(() => false)
-    }
-  }, [edit])
+    // if(edit) {
+    //   setTimeout(()=>{
+    //     dispatch(getAllOrders());
+    //     setEdit(()=>false);
+    //   },500)
+    //}    
+    setTable(()=>orders);
+    setEdit(false)
+  }, [orders.length,edit])
 
   const columns = useMemo(
     () => [
@@ -99,14 +106,14 @@ const Orders = () => {
                 gap: '1rem',
               }}
             >
-              {productPurchase.map(e =>
-              <Tooltip title={`${e?.title}`} key={e?.id}>
+              {productPurchase.map((e,i) =>
+              <Tooltip title={`${e?.title}`} key={i}>
                 <img
                   alt="avatar"
                   height={30}
                   src={e?.image}
                   loading="lazy"
-                  key = { e?.id }
+                  key = { i }
                   style={{ borderRadius: '50%' }}
                 />
                 </Tooltip>
@@ -168,11 +175,18 @@ const Orders = () => {
         muiTableBodyCellEditTextFieldProps: ({ cell, row }) => ({
           //select: cell.getValue()!=="created"?false:true, //change to select for a dropdown
           select: true,
+          onBlur: (event) => {
+            row.original.orderStatus === "created"
+              ?
+              handleStatus(row, event.target.value)
+              :
+              null;
+          },
           children:
             status.map((e) => (
               <MenuItem key={e}
                 disabled={cell.getValue() !== "created"}
-                value={e}
+                value={e}                
               >
                 {e}
               </MenuItem>
@@ -195,7 +209,7 @@ const Orders = () => {
         },
       }}
       columns={columns}
-      data={orders}
+      data={table}
       enableColumResizing
       initialState={{ columnVisibility: { titleProduct: false } }}
       positionRowActions="right"
@@ -215,19 +229,9 @@ const Orders = () => {
       enableMultiRowSelection={false}
       enableSelectAll={false}
       onRowSelectionChange={setRowSelection}
-      state={{ rowSelection }}
-      getRowId={(row) => row.id}
-      getRowId={(row) => row.id}
-      muiTableBodyCellEditTextFieldProps={({ row }) => ({
-        //onBlur is more efficient, but could use onChange instead
-        onBlur: (event) => {
-          row.original.orderStatus === "created"
-            ?
-            handleStatus(row, event.target.value)
-            :
-            null;
-        },
-      })}
+      state={{ rowSelection }} 
+      getRowId={(row) => row.id} 
+      
       muiSelectCheckboxProps={({ row }) => ({
         color: 'secondary',
         disabled: row.original.isAccountLocked,
