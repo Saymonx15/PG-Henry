@@ -6,6 +6,7 @@ import { checkLogin } from "./redux/action";
 import { Route } from "react-router-dom";
 import Landing from "./components/Landing";
 import Formulario from "./components/Formulario";
+import FormPurchase from "./components/FormPurchase";
 import Products from "./components/Products";
 import Login from "./components/Login";
 import Detail from "./components/Detail";
@@ -23,6 +24,7 @@ import LoginAuth0 from "./components/LoginAuth0";
 import Password from "./components/Password";
 import ResetPassword from "./components/ResetPassword";
 import Profile from "./components/Profile";
+import ViewOrder from "./components/ViewOrder";
 
 function App() {
   const dispatch = useDispatch();
@@ -39,7 +41,7 @@ function App() {
       // console.log(id);
       // console.log(token);
       dispatch(checkLogin(id, token));
-    }
+    }    
   }, [dispatch]);
 
   return (
@@ -61,6 +63,7 @@ function App() {
         />
         <Route exact path="/products" component={Products} />\
         <Route exact path="/entrega" component={Formulario} />
+        <Route exact path="/purchase" component={FormPurchase} />        
         <Route exact path="/admin" component={Admin} />
         <Route exact path="/admin/create" component={FormProduct} />
         <Route exact path="/user" component={CreateUser} />
@@ -71,6 +74,7 @@ function App() {
         />
         <Route exact path={["/", "/login"]} component={Footer} />
         <Route exact path="/profile" component={Profile} />
+        <Route exact path="/order" component={ViewOrder} />
       </header>
     </Auth0Provider>
   );
